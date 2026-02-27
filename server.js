@@ -14,7 +14,7 @@ const connectDB = require('./config/db');
 
 const restaurants = require('./routes/restaurants');
 const auth = require('./routes/auth');
-const appointments = require('./routes/appointments');
+const appointments = require('./routes/reservations');
 
 dotenv.config({path: './config/config.env'});
 connectDB();
