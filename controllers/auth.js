@@ -12,7 +12,7 @@ exports.login = async (req, res, next) => {
         }
         
         const user = await User.findOne({email}).select('+password');
-    
+
         if(!user){
             return res.status(400).json({
                 sucess: false,
@@ -40,12 +40,30 @@ exports.login = async (req, res, next) => {
 
 exports.register = async (req, res, next) => {
     try{
-        const {name, email, password, role} = req.body;
+        const {name, email, password, telephone, role} = req.body;
+
+        const existdEmail = await User.findOne({email});
+        const existdTelephone = await User.findOne({telephone});
+
+        if(existdEmail){
+            return res.status(400).json({
+                success: false,
+                message: "This email is already existed",
+            });
+        }
+
+        if(existdTelephone){
+            return res.status(400).json({
+                success: false,
+                message: "This telephone number is already existed",
+            });
+        }
 
         const user = await User.create({
             name,
             email,
             password,
+            telephone,
             role
         });
 
