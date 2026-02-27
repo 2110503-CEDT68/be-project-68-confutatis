@@ -1,8 +1,7 @@
 const Restaurant = require('../models/Restaurant');
-//const Reservation = require('../models/Reservation.js');
-//@desc Get all Restaurants 
-//@routeGET /api/v1/Restaurants
-//@access Public
+const Reservation = require('../models/Reservation.js');
+
+//Get all Restaurants 
 exports.getRestaurants = async (req,res,next)=>{
     let query;
 
@@ -16,7 +15,7 @@ exports.getRestaurants = async (req,res,next)=>{
     let queryStr = JSON.stringify(reqQuery);
     queryStr = queryStr.replace (/\b(gt|gte|lt|lte|in)\b/g, match=>`$${match}`);
 
-    query = Restaurant.find(JSON.parse (queryStr)).populate('Reservations');
+    query = Restaurant.find(JSON.parse (queryStr)).populate('reservations');
 
     if(req.query.select) 
     {
@@ -61,80 +60,88 @@ exports.getRestaurants = async (req,res,next)=>{
 
     try{
         const Restaurants = await query;
-        //const Restaurants = await Restaurant.find(req.query);
         console.log(req.query);
 
-        res.status (200).json({success:true, count:Restaurants.length,pagination , data:Restaurants});
+        res.status (200).json({
+            success:true, 
+            count:Restaurants.length,
+            pagination , 
+            data:Restaurants
+        });
     } catch(err){
         res.status (400).json({success:false});
     }
     
 };
-//@desc Get sigle Restaurant
-//@route GET/api/v1/Restaurants/:id
-//@access Public 
+
+//Get sigle Restaurant
 exports.getRestaurant= async (req,res,next)=>{
     try{
-        const Restaurant = await Restaurant.findById(req.params.id);
+        const restaurant = await Restaurant.findById(req.params.id);
 
-        if (!Restaurant) {
+        if (!restaurant) {
             return res.status (400).json({success:false});
         }
 
-        res.status (200).json({success:true, data:Restaurant});
+        res.status (200).json({success:true, data:restaurant});
     } catch(err){
         res.status (400).json({success:false});
     }
-    //res.status(200).json({success:true,msg:`Show Restaurant ${req.params.id}`});
 };
-//@desc Create new Restaurant 
-//@route POST /api/v1/Restaurants
-//@access Private
-exports.createRestaurant = async(req,res,next)=>{
-    const Restaurant = await Restaurant.create(req.body);
-    res.status (201).json({
-        success: true,
-        data: Restaurant
-    });
 
-    //res.status(200).json({success:true, msg:'Create new Restaurants'});
+//Create new Restaurant 
+exports.createRestaurant = async(req,res,next)=>{
+    try {
+        const restaurant = await Restaurant.create(req.body);
+        res.status (201).json({
+            success: true,
+            data: restaurant
+        });
+    } catch(err) {
+        if (err.name === 'ValidationError') { //lost info
+            const errors = Object.values(err.errors).map(e => e.message);
+
+            return res.status(400).json({
+                success: false,
+                errors
+            });
+        }
+        res.status(500).json({ success: false });
+    }  
 };
-//@desc Update Restaurant
-//@route 
-//@accessPrivate PUT /api/v1/Restaurants/:id
+
+//Update Restaurant
 exports.updateRestaurant= async (req, res,next)=> {
     try{
-        const Restaurant = await Restaurant.findByIdAndUpdate (req.params.id, req.body, {
+        const restaurant = await Restaurant.findByIdAndUpdate (req.params.id, req.body, {
             new: true,
             runValidators:true
         });
 
-        if(!Restaurant){
+        if(!restaurant){
             return res.status (400).json({success:false});
         }
 
-        res.status (200).json({success:true, data: Restaurant});
+        res.status (200).json({success:true, data: restaurant});
     }catch (err){
         res.status (400).json({success:false});
     }
 };
-//@desc Delete Restaurant 
-//@routeDELETE /api/v1/Restaurants/:id
-//@access Private
+
+//Delete Restaurant 
 exports.deleteRestaurant = async (req,res,next)=>{
     try {
-        const Restaurant = await Restaurant.findById(req.params.id);
+        const restaurant = await Restaurant.findById(req.params.id);
 
-        if(!Restaurant)
+        if(!restaurant)
         {
             return res.status (404).json({success:false, message:`Restaurant not found with id of ${req.params.id}`});
         }
-        await Reservation.deleteMany({ Restaurant: req.params.id });
+        await Reservation.deleteMany({ restaurant: req.params.id });
         await Restaurant.deleteOne({ _id: req.params.id });
 
         res.status (200).json({success:true, data: {}});
     } catch(err){
         res.status (400).json({success:false});
     }
-    //res.status(200).json({success:true, msg:`Delete Restaurant ${req.params.id}`});
 };
