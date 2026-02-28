@@ -14,13 +14,15 @@ const RestaurantSchema = new mongoose.Schema({
     tel:{
         type: String
     },
-    openTime:{
-        type: Date,
-        required: [true, 'Please add a open time']
+    openTime: {
+        type: String,
+        required: [true, 'Please add an open time'],
+        match: [/^([01]\d|2[0-3]):([0-5]\d)$/, 'Please use HH:mm format']
     },
-    closeTime:{
-        type: Date,
-        required: [true, 'Please add a close time']
+    closeTime: {
+        type: String,
+        required: [true, 'Please add a close time'],
+        match: [/^([01]\d|2[0-3]):([0-5]\d)$/, 'Please use HH:mm format']
     }
 },{
     toJSON: {virtuals:true},
