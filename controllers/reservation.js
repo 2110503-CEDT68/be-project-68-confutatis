@@ -6,10 +6,18 @@ exports.getReservations = async (req, res, next) => {
     let query;
 
     if(req.user.role !== 'admin') {
-        query = Reservation.find({user: req.user.id}).populate({
-            path: 'restaurant',
-            select: 'name province tel'
-        })
+        if(req.params.restaurantId) { // only allow if it has restaurant id, get user's reservations
+            console.log(req.params.restaurantId);
+            query = Reservation.find({user: req.user.id, restaurant: req.params.restaurantId}).populate({
+                path: 'restaurant',
+                select: 'name province tel'
+            })
+        } else {
+            query = Reservation.find({user: req.user.id}).populate({
+                path: 'restaurant',
+                select: 'name province tel'
+            })
+        }
     } else {
         if(req.params.restaurantId) {
             console.log(req.params.restaurantId);
@@ -141,6 +149,17 @@ exports.updateReservation = async (req, res, next) => {
                 message: `User ${req.user.id} is not authorized to delete this reservation`
             });
         }
+
+        // format again because maybe xss sanitizer explode the data
+        let reserveDateRaw = req.body.reserveDate;
+        if (typeof reserveDateRaw === "string") {
+            reserveDateRaw = reserveDateRaw.replace(
+                /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(\d{3})Z$/,
+                "$1.$2Z"
+            );
+            req.body.reserveDate = reserveDateRaw;
+        }
+
         reservation = await Reservation.findByIdAndUpdate(req.params.id, req.body, {
             new: true, 
             runValidators: true
