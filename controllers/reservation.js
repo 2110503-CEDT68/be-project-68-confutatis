@@ -78,6 +78,28 @@ exports.addReservation = async (req, res, next) => {
                 message: `No restaurant with the id of ${req.params.restaurantId}`
             });
         }
+        let reserveDateRaw = req.body.reserveDate;
+        // format again because maybe xss sanitizer explode the data
+        if (typeof reserveDateRaw === "string") {
+            reserveDateRaw = reserveDateRaw.replace(
+                /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(\d{3})Z$/,
+                "$1.$2Z"
+            );
+            req.body.reserveDate = reserveDateRaw;
+        }
+        const openTime = restaurant.openTime;
+        const closeTime = restaurant.closeTime;
+        const reservedTimeData = req.body.reserveDate;
+        const reservedTime = reservedTimeData.slice(11, 16);
+        console.log(reservedTimeData);
+        // console.log(req.body);
+        console.log(`Restarant time: ${openTime}-${closeTime}, your reserved ${reservedTime}`);
+        if(reservedTime<openTime || reservedTime>closeTime) {
+            return res.status(400).json({
+                success: false, 
+                message: `Restarant time: ${openTime}-${closeTime}, your reserved ${reservedTime}`
+            });
+        }
 
         req.body.user = req.user.id;
         const existedReservations = await Reservation.find({user: req.user.id});
@@ -87,6 +109,7 @@ exports.addReservation = async (req, res, next) => {
                 message: `The user with ID ${req.user.id} has already made 3 reservations` 
             })
         }
+        
 
         const reservation = await Reservation.create(req.body);
         res.status(200).json({
