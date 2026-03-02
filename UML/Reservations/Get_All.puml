@@ -1,0 +1,45 @@
+@startuml Manage Reservation (GET)
+
+header Sameple VacQ Sequence Diagram
+footer Page %page% of %lastpage%
+title "Get All Reservations (GET)"
+
+skinparam dpi 180
+skinparam ParticipantPadding 30
+skinparam MessagePadding 25
+skinparam maxMessageSize 40
+
+participant "Client" as client
+participant "<<javaScript>>\n:server" as server
+participant "<<middleware>>\n:auth/protect" as middleware
+participant "<<router>>\n:reservations" as routerReservations
+participant "<<controllers>>\n:reservations" as controllersReservations
+participant "<<model>>\n:Reservation" as modelReservation
+database "<<MongoDB>>\n:reservations" as ReservationsDatabase
+
+client -> server ++: req.get('/api/v1/reservations')
+server -> middleware ++: verify token\nset req.user
+middleware --> server --: next()
+
+server -> routerReservations ++: app.use('/api/v1/reservations',reservations)
+
+
+routerReservations -> controllersReservations ++: getReservations()
+
+controllersReservations -> modelReservation ++: find(filter)\n+ populate(restaurant)
+
+note right of controllersReservations
+filter depends on:
+- req.user.role (admin / not admin)
+
+populate:
+restaurant {name, address, tel}
+end note
+
+modelReservation -> ReservationsDatabase ++: ReservationSchema
+ReservationsDatabase --> modelReservation --: reservations
+modelReservation --> controllersReservations --: reservations
+
+controllersReservations --> client --: response
+
+@enduml
