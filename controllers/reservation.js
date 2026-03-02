@@ -92,26 +92,46 @@ exports.addReservation = async (req, res, next) => {
                 message: `No restaurant with the id of ${req.params.restaurantId}`
             });
         }
-        let reserveDateRaw = req.body.reserveDate;
         // format again because maybe xss sanitizer explode the data
-        if (typeof reserveDateRaw === "string") {
-            reserveDateRaw = reserveDateRaw.replace(
+        if (typeof req.body.startDateTime === "string") {
+            req.body.startDateTime = req.body.startDateTime.replace(
                 /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(\d{3})Z$/,
                 "$1.$2Z"
             );
-            req.body.reserveDate = reserveDateRaw;
+        }
+        if (typeof req.body.endDateTime === "string") {
+            req.body.endDateTime = req.body.endDateTime.replace(
+                /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(\d{3})Z$/,
+                "$1.$2Z"
+            );
         }
         const openTime = restaurant.openTime;
         const closeTime = restaurant.closeTime;
-        const reservedTimeData = req.body.reserveDate;
-        const reservedTime = reservedTimeData.slice(11, 16);
-        console.log(reservedTimeData);
+        const startTime = req.body.startDateTime.slice(11, 16);
+        const endTime = req.body.endDateTime.slice(11, 16);
         // console.log(req.body);
-        console.log(`Restarant time: ${openTime}-${closeTime}, your reserved ${reservedTime}`);
-        if(reservedTime<openTime || reservedTime>closeTime) {
+        console.log(`Restarant time: ${openTime}-${closeTime}, your reserved ${startTime}-${endTime}`);
+        //Rule: must be same date
+        const startDate = req.body.startDateTime.slice(0, 10);
+        const endDate = req.body.endDateTime.slice(0, 10);
+        if(startDate!=endDate) {
             return res.status(400).json({
                 success: false, 
-                message: `Restarant time: ${openTime}-${closeTime}, your reserved ${reservedTime}`
+                message: `The reserve must be on the same day. ${startDate} - ${endDate}`
+            });
+        }
+        // Rule: l<r
+        if(startTime>=endTime) {
+            return res.status(400).json({
+                success: false, 
+                message: `End Time ${endTime} must be more than Start Time ${startTime}`
+            });
+        }
+        //Rule: Only in available time
+        if(!(openTime<=startTime && endTime<=closeTime)) {
+            return res.status(400).json({
+                success: false, 
+                message: `Restarant time: ${openTime}-${closeTime}, your reserved ${startTime}-${endTime}`
             });
         }
 
@@ -157,13 +177,53 @@ exports.updateReservation = async (req, res, next) => {
         }
 
         // format again because maybe xss sanitizer explode the data
-        let reserveDateRaw = req.body.reserveDate;
-        if (typeof reserveDateRaw === "string") {
-            reserveDateRaw = reserveDateRaw.replace(
+        if (typeof req.body.startDateTime === "string") {
+            req.body.startDateTime = req.body.startDateTime.replace(
                 /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(\d{3})Z$/,
                 "$1.$2Z"
             );
-            req.body.reserveDate = reserveDateRaw;
+        }
+        if (typeof req.body.endDateTime === "string") {
+            req.body.endDateTime = req.body.endDateTime.replace(
+                /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(\d{3})Z$/,
+                "$1.$2Z"
+            );
+        }
+        const restaurant = await Restaurant.findById(req.body.restaurant);
+        if(!restaurant) {
+            return res.status(400).json({
+                success: false,
+                message: `This restaurantId doesn't exist ${req.body.restaurant}.`
+            })
+        }
+        const openTime = restaurant.openTime;
+        const closeTime = restaurant.closeTime;
+        const startTime = req.body.startDateTime.slice(11, 16);
+        const endTime = req.body.endDateTime.slice(11, 16);
+        // console.log(req.body);
+        console.log(`Restarant time: ${openTime}-${closeTime}, your reserved ${startTime}-${endTime}`);
+        //Rule: must be same date
+        const startDate = req.body.startDateTime.slice(0, 10);
+        const endDate = req.body.endDateTime.slice(0, 10);
+        if(startDate!=endDate) {
+            return res.status(400).json({
+                success: false, 
+                message: `The reserve must be on the same day. ${startDate} - ${endDate}`
+            });
+        }
+        // Rule: l<r
+        if(startTime>=endTime) {
+            return res.status(400).json({
+                success: false, 
+                message: `End Time ${endTime} must be more than Start Time ${startTime}`
+            });
+        }
+        //Rule: Only in available time
+        if(!(openTime<=startTime && endTime<=closeTime)) {
+            return res.status(400).json({
+                success: false, 
+                message: `Restarant time: ${openTime}-${closeTime}, your reserved ${startTime}-${endTime}`
+            });
         }
 
         reservation = await Reservation.findByIdAndUpdate(req.params.id, req.body, {
