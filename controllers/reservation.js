@@ -189,7 +189,7 @@ exports.updateReservation = async (req, res, next) => {
                 "$1.$2Z"
             );
         }
-        const restaurant = await Restaurant.findById(req.body.restaurant);
+        const restaurant = await Restaurant.findById(req.body.restaurant) || reservation.restaurant;
         if(!restaurant) {
             return res.status(400).json({
                 success: false,
