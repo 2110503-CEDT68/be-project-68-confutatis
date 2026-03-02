@@ -161,7 +161,10 @@ exports.addReservation = async (req, res, next) => {
 
 exports.updateReservation = async (req, res, next) => {
     try {
-        let reservation = await Reservation.findById(req.params.id);
+        let reservation = await Reservation.findById(req.params.id).populate({
+            path: 'restaurant',
+            select: 'openTime closeTime'
+        })
         if(!reservation) {
             return res.status(404).json({
                 success: false,
@@ -189,7 +192,10 @@ exports.updateReservation = async (req, res, next) => {
                 "$1.$2Z"
             );
         }
-        const restaurant = await Restaurant.findById(req.body.restaurant) || reservation.restaurant;
+        let restaurant = await Restaurant.findById(req.body.restaurant);
+        if(!restaurant) {
+            restaurant = reservation.restaurant;
+        }
         if(!restaurant) {
             return res.status(400).json({
                 success: false,
