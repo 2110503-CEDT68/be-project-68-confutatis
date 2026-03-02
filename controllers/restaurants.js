@@ -1,21 +1,22 @@
 const Restaurant = require('../models/Restaurant');
 const Reservation = require('../models/Reservation.js');
+const mongoose = require('mongoose');
 
 //Get all Restaurants 
 exports.getRestaurants = async (req,res,next)=>{
     let query;
 
-    const reqQuery= {...req.query};
+    const reqQuery = {...req.query};
 
-    const removeFields=['select','sort','page','limit'];
+    const removeFields = ['select','sort','page','limit'];
 
     removeFields.forEach(param=>delete reqQuery[param]);
-    console.log(reqQuery);
+    //console.log(reqQuery);
 
     let queryStr = JSON.stringify(reqQuery);
-    queryStr = queryStr.replace (/\b(gt|gte|lt|lte|in)\b/g, match=>`$${match}`);
+    queryStr = queryStr.replace(/\b(gt|gte|lt|lte|in)\b/g, match=>`$${match}`);
 
-    query = Restaurant.find(JSON.parse (queryStr)).populate('reservations');
+    query = Restaurant.find(JSON.parse(queryStr)).populate('reservations');
 
     if(req.query.select) 
     {
@@ -37,7 +38,7 @@ exports.getRestaurants = async (req,res,next)=>{
     const limit = parseInt(req.query.limit,10) || 25;
     const startIndex = (page-1) * limit;
     const endIndex = page * limit;
-    const total = await Restaurant.countDocuments();
+    const total = await Restaurant.countDocuments(JSON.parse(queryStr));
 
     query = query.skip(startIndex).limit(limit);
 
@@ -59,24 +60,27 @@ exports.getRestaurants = async (req,res,next)=>{
     }
 
     try{
-        const Restaurants = await query;
-        console.log(req.query);
+        const restaurants = await query;
+        //console.log(req.query);
 
-        res.status (200).json({
+        res.status(200).json({
             success:true, 
-            count:Restaurants.length,
+            count:restaurants.length,
             pagination , 
-            data:Restaurants
+            data:restaurants
         });
     } catch(err){
-        res.status (400).json({success:false});
+        res.status(500).json({success:false});
     }
     
 };
 
 //Get sigle Restaurant
 exports.getRestaurant= async (req,res,next)=>{
-    try{
+    try {
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) { //if restaurant is not valid na
+            return res.status(400).json({success:false, message:'Invalid restaurant ID'});
+        }
         const restaurant = await Restaurant.findById(req.params.id);
 
         if (!restaurant) {
@@ -84,7 +88,7 @@ exports.getRestaurant= async (req,res,next)=>{
         }
 
         res.status (200).json({success:true, data:restaurant});
-    } catch(err){
+    } catch(err) {
         res.status (500).json({success:false});
     }
 };
@@ -113,35 +117,43 @@ exports.createRestaurant = async(req,res,next)=>{
 //Update Restaurant
 exports.updateRestaurant= async (req, res,next)=> {
     try{
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({success:false, message:'Invalid restaurant ID'});
+        }
         const restaurant = await Restaurant.findByIdAndUpdate (req.params.id, req.body, {
             new: true,
             runValidators:true
         });
 
         if(!restaurant){
-            return res.status (400).json({success:false});
+            return res.status (404).json({success:false});
         }
 
         res.status (200).json({success:true, data: restaurant});
-    }catch (err){
-        res.status (400).json({success:false});
+    } catch (err) {
+        res.status (500).json({success:false});
     }
 };
 
 //Delete Restaurant 
 exports.deleteRestaurant = async (req,res,next)=>{
     try {
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({success:false, message:'Invalid restaurant ID'});
+        }
+
         const restaurant = await Restaurant.findById(req.params.id);
 
         if(!restaurant)
         {
-            return res.status (404).json({success:false, message:`Restaurant not found with id of ${req.params.id}`});
+            return res.status(404).json({success:false, message:`Restaurant not found with id of ${req.params.id}`});
         }
         await Reservation.deleteMany({ restaurant: req.params.id });
         await Restaurant.deleteOne({ _id: req.params.id });
 
-        res.status (200).json({success:true, data: {}});
-    } catch(err){
-        res.status (400).json({success:false});
+        res.status(200).json({success:true, data: {}});
+    } catch(err) {
+        
+        res.status(500).json({success:false});
     }
 };
