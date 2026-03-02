@@ -202,15 +202,20 @@ exports.updateReservation = async (req, res, next) => {
                 message: `This restaurantId doesn't exist ${req.body.restaurant}.`
             })
         }
+        console.log(reservation);
         const openTime = restaurant.openTime;
         const closeTime = restaurant.closeTime;
-        const startTime = req.body.startDateTime.slice(11, 16);
-        const endTime = req.body.endDateTime.slice(11, 16);
+        const startDateTime = req.body.startDateTime || reservation.startDateTime.toISOString();
+        let endDateTime = req.body.endDateTime || reservation.endDateTime.toISOString();
+        const startTime = startDateTime.slice(11, 16);
+        const endTime = endDateTime.slice(11, 16);
+        // console.log(typeof startTime, typeof endTime);
+        // console.log(startTime, endTime);
         // console.log(req.body);
         console.log(`Restarant time: ${openTime}-${closeTime}, your reserved ${startTime}-${endTime}`);
         //Rule: must be same date
-        const startDate = req.body.startDateTime.slice(0, 10);
-        const endDate = req.body.endDateTime.slice(0, 10);
+        const startDate = startDateTime.slice(0, 10);
+        const endDate = endDateTime.slice(0, 10);
         if(startDate!=endDate) {
             return res.status(400).json({
                 success: false, 
