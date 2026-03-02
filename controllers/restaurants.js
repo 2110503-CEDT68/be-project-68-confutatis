@@ -20,7 +20,7 @@ exports.getRestaurants = async (req,res,next)=>{
 
     if(req.query.select) 
     {
-        const fields = req.query.select.split(',').join(' ');
+        let fields = req.query.select.split(',').join(' ');
         query = query.select(fields);
     }
 
@@ -81,7 +81,10 @@ exports.getRestaurant= async (req,res,next)=>{
         if (!mongoose.Types.ObjectId.isValid(req.params.id)) { //if restaurant is not valid na
             return res.status(400).json({success:false, message:'Invalid restaurant ID'});
         }
-        const restaurant = await Restaurant.findById(req.params.id);
+
+        let query = Restaurant.findById(req.params.id);
+
+        const restaurant = await query;
 
         if (!restaurant) {
             return res.status (404).json({success:false});
@@ -97,6 +100,7 @@ exports.getRestaurant= async (req,res,next)=>{
 exports.createRestaurant = async(req,res,next)=>{
     try {
         const restaurant = await Restaurant.create(req.body);
+        
         res.status (201).json({
             success: true,
             data: restaurant
@@ -108,6 +112,12 @@ exports.createRestaurant = async(req,res,next)=>{
             return res.status(400).json({
                 success: false,
                 errors
+            });
+        }
+        if (err.code === 11000) { //if already exists throw Mongo error 11000 ***
+            return res.status(400).json({
+                success:false,
+                message:'Restaurant name already exists'
             });
         }
         res.status(500).json({ success: false });

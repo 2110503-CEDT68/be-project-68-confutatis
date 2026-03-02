@@ -12,7 +12,8 @@ const RestaurantSchema = new mongoose.Schema({
         required: [true, 'Please add an address']
     },
     tel:{
-        type: String
+        type: String,
+        match: [/^[0-9\-+]{9,15}$/, 'Please add a valid phone number']
     },
     openTime: {
         type: String,
@@ -25,6 +26,7 @@ const RestaurantSchema = new mongoose.Schema({
         match: [/^([01]\d|2[0-3]):([0-5]\d)$/, 'Please use HH:mm format']
     }
 },{
+    timestamps: true,
     toJSON: {virtuals:true},
     toObject:{virtuals:true}
 });
