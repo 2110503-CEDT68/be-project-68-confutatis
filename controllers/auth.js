@@ -101,6 +101,14 @@ exports.getMe = async (req, res, next) => {
     });
 };
 
+exports.getAll = async (req, res, next) => {
+    const users = await User.find();
+    res.status(200).json({
+        success: true,
+        data: users,
+    })
+}
+
 exports.logout = async (req, res, next) => {
     res.cookie('token', 'none', {
         expires : new Date(Date.now() + 10 * 1000),
