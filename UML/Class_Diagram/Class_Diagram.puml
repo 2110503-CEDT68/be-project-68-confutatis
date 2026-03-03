@@ -1,0 +1,120 @@
+@startuml
+top to bottom direction
+
+class "Restaurant Reservation" <<Application>>
+
+class "Restaurants" <<Resource>> {
+  + <<GET>> getRestaurants() : Restaurant[]
+  - <<POST>> addRestaurant() : Restaurant
+  --
+  - <<middleware>> protect()
+  - <<middleware>> authorize('admin')
+}
+
+class "Restaurant" as RestaurantResource <<Resource>> {
+    + <<GET>> getRestaurant() : Restaurant
+    - <<PUT>> updateRestaurant() : Restaurant
+    - <<DELETE>> deleteRestaurant() : Restaurant
+    --
+    - <<middleware>> protect()
+    - <<middleware>> authorize('admin')
+}
+
+class "Reservations" <<Resource>> {
+  + <<GET>> getReservations() : Reservation[]
+  + <<GET>> getReservation() : Reservation
+  - <<POST>> addReservation() : Reservation
+  - <<PUT>> updateReservation() : Reservation
+  - <<DELETE>> deleteReservation() : Reservation
+  --
+  - <<middleware>> protect()
+  - <<middleware>> authorize('user','admin')
+}
+
+class "Reservation" <<Representation>> {
+  - _id : ObjectId
+  - startDateTime : Date
+  - endDateTime : Date
+  - user : ObjectId
+  - restaurant : ObjectId
+}
+
+class "Auth" <<Resource>>
+
+class "Register" <<Resource>> {
+  + <<POST>> register() : User
+}
+class "Log In" <<Resource>> {
+  + <<POST>> login() : Token
+}
+
+class "Get Me" <<Resource>> {
+  - <<GET>> getMe() : User
+}
+
+class "Log Out" <<Resource>> {
+  - <<GET>> logout() : void
+}
+
+' "Register" -[hidden]-> "Log In"
+' "Log In" -[hidden]-> "Get Me"
+' "Get Me" -[hidden]-> "Log Out"
+
+class "Token" <<Representation>>
+
+class "User" <<Representation>> {
+  - _id : ObjectId
+  - name : String
+  - email : String
+  - telephone : String
+  - role : String  <<enum:user|admin>>
+  - createdAt : Date
+}
+
+' "Token" -right[hidden]-> "User"
+
+class "Restaurant" as RestaurantRepresentation <<Representation>> {
+  - _id : ObjectId
+  - name : String
+  - address : String
+  - tel : String
+  - openTime : String  <<HH:mm>>
+  - closeTime : String <<HH:mm>>
+  - createdAt : Date
+  - updatedAt : Date
+  --
+  - reservations : Reservation[]  <<virtual>>
+}
+
+' -- PATH -- 
+
+"Restaurant Reservation" --> "Restaurants" : <<path>> /restaurants
+
+"Restaurants" --> "RestaurantResource" : <<path>> /:restaurant_id
+
+RestaurantResource --> "Reservations" : <<path>> /:restaurantId/reservations
+
+"RestaurantResource" ..> "RestaurantRepresentation" : <<use>>
+"Restaurants" ..> "RestaurantRepresentation" : <<use>>
+
+"Restaurant Reservation" --> "Auth" : <<path>> /auth
+"Auth" --> "Register" : <<path>> /register
+"Register" ..> "User" : <<use>>
+
+"Auth" --> "Log In" : <<path>> /login
+"Log In" ..> "User" : <<use>>
+"Log In" ..> "Token" : <<use>>
+
+"Auth" --> "Get Me" : <<path>> /me
+"Get Me" ..> "User" : <<use>>
+"Get Me" ..> "Token" : <<use>>
+
+"Auth" --> "Log Out" : <<path>> /logout
+"Log Out" ..> "User" : <<use>>
+
+"Restaurant Reservation" --> "Reservations" : <<path>> /reservations
+"Reservations" ..> "Reservation" : <<use>>
+"Reservation" --> "User" : user
+"Reservation" --> RestaurantRepresentation : restaurant
+
+@enduml
