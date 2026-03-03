@@ -90,7 +90,7 @@ class "Restaurant" as RestaurantRepresentation <<Representation>> {
 
 "Restaurant Reservation" --> "Restaurants" : <<path>> /restaurants
 
-"Restaurants" --> "RestaurantResource" : <<path>> /:restaurant_id
+"Restaurants" --> "RestaurantResource" : <<path>> /:restaurantId
 
 RestaurantResource --> "Reservations" : <<path>> /:restaurantId/reservations
 
