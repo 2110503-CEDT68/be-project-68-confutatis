@@ -2,7 +2,7 @@
 
 header Sameple VacQ Sequence Diagram
 footer Page %page% of %lastpage%
-title "Delete One Reservations (DELETE)"
+title "Delete One Reservation (DELETE)"
 
 skinparam dpi 180
 skinparam ParticipantPadding 30
@@ -11,26 +11,34 @@ skinparam maxMessageSize 40
 
 participant "Client" as client
 participant "<<javaScript>>\n:server" as server
-participant "<<middleware>>\n:auth/protect" as middleware
 participant "<<router>>\n:reservations" as routerReservations
+participant "<<middleware>>\n:auth/protect" as middleware
 participant "<<controllers>>\n:reservations" as controllersReservations
+participant "<<controllers>>\n:users" as controllersUsers   
 participant "<<model>>\n:Reservation" as modelReservation
+participant "<<model>>\n:User" as modelUser
 database "<<MongoDB>>\n:reservations" as ReservationsDatabase
+database "<<MongoDB>>\n:users" as UsersDatabase
 
 client -> server ++: req.delete('/api/v1/reservations/:id')
-server -> middleware ++: verify token\nset req.user
-middleware --> server --: next()
+server -> routerReservations ++: req.delete('/api/v1/reservations/:id')
+routerReservations -> middleware ++: protect(token)
+middleware -> modelUser ++: findById(decoded.id)
+modelUser -> UsersDatabase ++: findById(decoded.id)
+UsersDatabase --> middleware --: user
+middleware --> routerReservations --: next()
 
-server -> routerReservations ++: app.use('/api/v1/reservations',reservations)
-
+routerReservations -> middleware ++: authorize('user', 'admin')
+middleware --> routerReservations --: next()
 
 routerReservations -> controllersReservations ++: deleteReservation()
 
-controllersReservations -> modelReservation ++: deleteOne(id: user.params.id)
+controllersReservations -> modelReservation ++: deleteOne(id: req.params.id)
 
 note right of controllersReservations
-response depends on:
-- req.user.role (admin / not admin) or ownership of the data
+reponse depends on:
+- user only allow to delete their own reserve
+- admin can delete any reserve
 end note
 
 modelReservation -> ReservationsDatabase ++: ReservationSchema
