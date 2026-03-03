@@ -2,7 +2,7 @@
 
 header Sameple VacQ Sequence Diagram
 footer Page %page% of %lastpage%
-title "Get One Reservations (GET)"
+title "Get One Reservation (GET)"
 
 skinparam dpi 180
 skinparam ParticipantPadding 30
@@ -11,27 +11,34 @@ skinparam maxMessageSize 40
 
 participant "Client" as client
 participant "<<javaScript>>\n:server" as server
-participant "<<middleware>>\n:auth/protect" as middleware
 participant "<<router>>\n:reservations" as routerReservations
+participant "<<middleware>>\n:auth/protect" as middleware
 participant "<<controllers>>\n:reservations" as controllersReservations
+participant "<<controllers>>\n:users" as controllersUsers   
 participant "<<model>>\n:Reservation" as modelReservation
+participant "<<model>>\n:User" as modelUser
 database "<<MongoDB>>\n:reservations" as ReservationsDatabase
+database "<<MongoDB>>\n:users" as UsersDatabase
 
 client -> server ++: req.get('/api/v1/reservations/:id')
-server -> middleware ++: verify token\nset req.user
-middleware --> server --: next()
+server -> routerReservations ++: req.get('/api/v1/reservations/:id')
+routerReservations -> middleware ++: protect(token)
+middleware -> modelUser ++: findById(decoded.id)
+modelUser -> UsersDatabase ++: findById(decoded.id)
+UsersDatabase --> middleware --: user
+middleware --> routerReservations --: next()
 
-server -> routerReservations ++: app.use('/api/v1/reservations',reservations)
-
+routerReservations -> middleware ++: authorize('user', 'admin')
+middleware --> routerReservations --: next()
 
 routerReservations -> controllersReservations ++: getReservation()
 
 controllersReservations -> modelReservation ++: findById(req.params.id)\n+ populate(restaurant)
 
 note right of controllersReservations
-response depends on:
-- req.user.role (admin / not admin) or ownership of the data
-- req.params.restaurantId (optional)
+reponse depends on:
+- user only allow to view their own reserve
+- admin can view any reserve
 
 populate:
 restaurant {name, address, tel}

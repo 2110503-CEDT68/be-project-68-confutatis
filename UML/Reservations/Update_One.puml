@@ -2,7 +2,7 @@
 
 header Sameple VacQ Sequence Diagram
 footer Page %page% of %lastpage%
-title "Update One Reservations (PUT)"
+title "Update One Reservation (PUT)"
 
 skinparam dpi 180
 skinparam ParticipantPadding 30
@@ -11,26 +11,60 @@ skinparam maxMessageSize 40
 
 participant "Client" as client
 participant "<<javaScript>>\n:server" as server
-participant "<<middleware>>\n:auth/protect" as middleware
 participant "<<router>>\n:reservations" as routerReservations
+participant "<<middleware>>\n:auth/protect" as middleware
 participant "<<controllers>>\n:reservations" as controllersReservations
+participant "<<controllers>>\n:users" as controllersUsers
+participant "<<controllers>>\n:restaurants" as controllersRestaurants
 participant "<<model>>\n:Reservation" as modelReservation
+participant "<<model>>\n:User" as modelUser
+participant "<<model>>\n:Restaurant" as modelRestaurant
 database "<<MongoDB>>\n:reservations" as ReservationsDatabase
+database "<<MongoDB>>\n:users" as UsersDatabase
+database "<<MongoDB>>\n:restaurants" as RestaurantsDatabase
 
 client -> server ++: req.put('/api/v1/reservations/:id')
-server -> middleware ++: verify token\nset req.user
-middleware --> server --: next()
+server -> routerReservations ++: req.put('/api/v1/reservations/:id')
+routerReservations -> middleware ++: protect(token)
+middleware -> modelUser ++: findById(decoded.id)
+modelUser -> UsersDatabase ++: findById(decoded.id)
+UsersDatabase --> middleware --: user
+middleware --> routerReservations --: next()
 
-server -> routerReservations ++: app.use('/api/v1/reservations',reservations)
-
+routerReservations -> middleware ++: authorize('user', 'admin')
+middleware --> routerReservations --: next()
 
 routerReservations -> controllersReservations ++: updateReservation()
+
+controllersReservations -> modelReservation ++: findById(req.params.id)
+
+note right of controllersReservations
+populate:
+restaurant {openTime, closeTime}
+end note
+
+modelReservation -> ReservationsDatabase ++: ReservationSchema
+ReservationsDatabase --> modelReservation --: Reservation
+modelReservation --> controllersReservations --: Reservation
+
+controllersReservations -> modelRestaurant ++: findById(req.body.restaurant)
+
+note right of controllersReservations
+Fetch restaurant if changing new restaurant.
+If some fields are not passed into req.body.restaurant, use the current value of reservation data.
+end note
+
+modelRestaurant -> RestaurantsDatabase ++: RestaurantSchema
+RestaurantsDatabase --> modelRestaurant --: restaurant
+modelRestaurant --> controllersReservations --: restaurant
 
 controllersReservations -> modelReservation ++: findByIdAndUpdate(req.params.id, req.body)
 
 note right of controllersReservations
-response depends on:
-- req.user.role (admin / not admin) or ownership of the data
+Update the req.body to update data.
+reponse depends on:
+- user only allow to edit their own reserve
+- admin can edit any reserve
 end note
 
 modelReservation -> ReservationsDatabase ++: ReservationSchema
