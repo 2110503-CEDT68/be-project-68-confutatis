@@ -1,0 +1,21 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+actor User
+actor Admin
+
+rectangle "Restaurant System" {
+
+  User --> (Get All Restaurants)
+  User --> (Get Restaurant By ID)
+
+  (Get All Restaurants) <-- Admin
+  (Get Restaurant By ID) <-- Admin
+  (Create Restaurant) <-- Admin
+  (Update Restaurant) <-- Admin
+  (Delete Restaurant) <-- Admin
+
+}
+
+@enduml

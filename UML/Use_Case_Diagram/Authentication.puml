@@ -1,0 +1,21 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+actor User
+actor Admin
+
+rectangle "Authentication System" {
+
+  User --> (Register)
+  User --> (Login)
+  User --> (Logout)
+  User --> (Get Me)
+
+  (Login) <-- Admin
+  (Logout) <-- Admin
+  (Get Me) <-- Admin
+
+}
+
+@enduml
